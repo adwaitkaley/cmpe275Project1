@@ -10,7 +10,7 @@ int const NUM_SECTORS = 16;
 int const NUM_SPEEDBINS = 7;
 
 //construct windrose aggregated matrix
-int wr[NUM_SECTORS][NUM_SPEEDBINS]={0};
+int wr[omp_get_thread_num()][NUM_SECTORS][NUM_SPEEDBINS]={0};
 
 struct MesoData
 {
@@ -50,7 +50,9 @@ void readMesoData(const char* argv)
 		int s=calcSpeedBin(spd);
 		int d=calcDirectBin(dir);
 	    //#pragma omp atomic 
-	    {wr[d][s]++;}
+	    {
+	    	wr[d][s]++;
+	    }
 	}
 
 
@@ -79,10 +81,9 @@ void displayArray()
 int main(int argc, const char* argv[])
 {
 
-//#pragma omp parallel for
+	#pragma omp parallel for
 	for(int j=1;j<argc;j++)
- 	{
- 		
+ 	{	printf("%s %d\n",argv[j],omp_get_thread_num());
  		readMesoData(argv[j]);
 	}
 
