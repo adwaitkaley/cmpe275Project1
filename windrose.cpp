@@ -10,15 +10,13 @@ int const NUM_SECTORS = 16;
 int const NUM_SPEEDBINS = 7;
 
 //construct windrose aggregated matrix
-int wr[omp_get_thread_num()][NUM_SECTORS][NUM_SPEEDBINS]={0};
+// struct MesoData
+// {
+//  float wSpd;
+//  float wDirn;
+// };
 
-struct MesoData
-{
- float wSpd;
- float wDirn;
-};
-
-int calcSpeedBin(float windSpd){
+int inline calcSpeedBin(float windSpd){
 // Sector Ranges 
   if(windSpd <= 0) return 0;
   else if (windSpd >0 && windSpd <=2) return 1;
@@ -29,7 +27,7 @@ int calcSpeedBin(float windSpd){
   else return 6;
 }
 
-int calcDirectBin(float windDir)
+int inline calcDirectBin(float windDir)
 {
   //cut into 16 sectors
    float sector=360/NUM_SECTORS;
@@ -38,29 +36,29 @@ int calcDirectBin(float windDir)
 
 
 
-void readMesoData(const char* argv)
+void readMesoData(const char* argv,int wr[NUM_SECTORS][NUM_SPEEDBINS])
 {
 
-	ifstream  datafile(argv);
-	double spd, dir;
-	char c;
-
-	for(;((datafile >> spd >> c >> dir) && (c == ','));)
-	{
-		int s=calcSpeedBin(spd);
-		int d=calcDirectBin(dir);
-	    //#pragma omp atomic 
-	    {
-	    	wr[d][s]++;
-	    }
-	}
+	// ifstream  datafile(argv);
+	// double spd, dir;
+	// char c;
+	// //cout<<omp_get_thread_num();
+	// for(;((datafile >> spd >> c >> dir) && (c == ','));)
+	// {
+	// 	int s=calcSpeedBin(spd);
+	// 	int d=calcDirectBin(dir);
+	//     //	#pragma omp atomic 
+	//     {
+	//     	wr[d][s]++;
+	//     }
+	// }
 
 
 }
 
-void displayArray()
+void displayArray(int wr[NUM_SECTORS][NUM_SPEEDBINS])
 {
-	//Display Array
+//	Display Array
 	for(int i=0;i<NUM_SECTORS;i++)
 	{
 		for(int j=0;j<NUM_SPEEDBINS;j++)
@@ -71,21 +69,44 @@ void displayArray()
 	}
 
 	// for(int i =0; i<NUM_SPEEDBINS*NUM_SECTORS;i++)
-	// 	cout<<*wr[i];
-	
-	
-
-
+	// {
+		
+	// 		cout<<*wr[i]<<"\t";
+	// 		if(i%NUM_SECTORS==0)
+	// 			cout<<"\n";
+	// }
 }
 
-int main(int argc, const char* argv[])
+int main(int argc, char* argv[])
 {
+	static int wr[NUM_SECTORS][NUM_SPEEDBINS]={0};
+	//clock_t start=clock();
+	char* files[argc-1];
+	for(int j=0;j<argc-1;j++)
+ 		files[j]=argv[j+1];
 
+ 	// for(int j=0;j<argc-1;j++)
+ 	// 	cout<<files[j];
+ 	clock_t start=clock();
 	#pragma omp parallel for
-	for(int j=1;j<argc;j++)
- 	{	printf("%s %d\n",argv[j],omp_get_thread_num());
- 		readMesoData(argv[j]);
+	for(int j=0;j<argc-1;j++)
+ 	{	//printf("%s %d\n",files[j],omp_get_thread_num());
+ 		//readMesoData(files[j],wr);
+ 		ifstream  datafile(files[j]);
+		double spd, dir;
+		char c;
+		//cout<<omp_get_thread_num();
+		for(;((datafile >> spd >> c >> dir) && (c == ','));)
+		//while((datafile >> spd >> c >> dir) && (c == ','))
+		{
+			int s=calcSpeedBin(spd);
+			int d=calcDirectBin(dir);
+		    //	#pragma omp atomic 
+		    {
+		    	wr[d][s]++;
+		    }
+		}
 	}
-
-  displayArray();  
+	printf("\nTime taken: %fs\n", (double)(clock() - start)/CLOCKS_PER_SEC);
+  	displayArray(wr);  
 }
