@@ -1,6 +1,6 @@
 #!/bin/bash
 
-g++-5 windrose.cpp -o windrose -fopenmp -std=gnu++11
+g++-5 windrose.cpp -o windrose -fopenmp -std=gnu++11 
 if [ $? -ne 0 ]
 then
     echo "Compile failed!"
@@ -14,4 +14,5 @@ for entry in $(find $curr_dir -type f -name "*.csv")
 do
 	file_list="$file_list $entry"
 done
-time ./windrose $file_list
+export OMP_NUM_THREADS=4
+time ./windrose $file_list 
