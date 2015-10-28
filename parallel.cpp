@@ -10,6 +10,7 @@ using namespace std;
 int const NUM_SECTORS = 16;
 int const NUM_SPEEDBINS = 7;
 int const OMP_NUM_THREADS= stoi(getenv ("OMP_NUM_THREADS"));
+int static w[NUM_SECTORS*NUM_SPEEDBINS]={0};
 
 int inline calcSpeedBin(float windSpd){
 // Sector Ranges 
@@ -30,53 +31,54 @@ int inline calcDirectBin(float windDir)
 }
 
 
-void displayArray(int wr[][NUM_SECTORS*NUM_SPEEDBINS]){
+// void displayArray(int wr[][NUM_SECTORS*NUM_SPEEDBINS]){
 
-	/*for (int t = 0; t < OMP_NUM_THREADS; t++)
-	*/		for(int i=0;i<NUM_SPEEDBINS;i++)
-		{
-			for(int j=0;j<NUM_SECTORS;j++)
-				{
-					//cout<<wr[t][i][j]<<"\t";
-					//wr[0][i][j]=wr[0][i][j]+wr[1][i][j];
-					wr[0][NUM_SPEEDBINS*i+j]=wr[0][NUM_SPEEDBINS*i+j]+wr[1][NUM_SPEEDBINS*i+j];
-				}
-				//cout<<endl;
-		}
-	/*}*/
-cout<<"-------------------------------------------------------------"<<endl;
-cout<<"-------------------------------------------------------------"<<endl;
-	for(int i=0;i<NUM_SPEEDBINS;i++){
-		for(int j=0;j<NUM_SECTORS;j++){
-				cout<<wr[0][NUM_SPEEDBINS*i+j]<<"\t";
-		}
-		cout<<endl;	
-	}
-	cout<<"-------------------------------------------------------------"<<endl;
-	for(int i=0;i<NUM_SPEEDBINS;i++){
-		for(int j=0;j<NUM_SECTORS;j++){
-				cout<<wr[1][NUM_SPEEDBINS*i+j]<<"\t";
-		}
-		cout<<endl;	
-	}
-}
+// 	/*for (int t = 0; t < OMP_NUM_THREADS; t++)
+// 		for(int i=0;i<NUM_SPEEDBINS;i++)
+// 		{
+// 			for(int j=0;j<NUM_SECTORS;j++)
+// 				{
+// 					//cout<<wr[t][i][j]<<"\t";
+// 					//wr[0][i][j]=wr[0][i][j]+wr[1][i][j];
+// 					wr[0][NUM_SPEEDBINS*i+j]=wr[0][NUM_SPEEDBINS*i+j]+wr[1][NUM_SPEEDBINS*i+j];
+// 				}
+// 				//cout<<endl;
+// 		}
+// 	}*/
+// 	cout<<"-------------------------------------------------------------"<<endl;
+// 	cout<<"-------------------------------------------------------------"<<endl;
+	
+// 	for(int i=0;i<NUM_SPEEDBINS;i++){
+// 		for(int j=0;j<NUM_SECTORS;j++){
+// 				cout<<wr[0][NUM_SPEEDBINS*i+j]<<"\t";
+// 		}
+// 		cout<<endl;	
+// 	}
 
-int main(int argc, char* argv[])
-{
-	  	
-  	clock_t start=clock();
+// 	cout<<"-------------------------------------------------------------"<<endl;
+// 	for(int i=0;i<NUM_SPEEDBINS;i++){
+// 		for(int j=0;j<NUM_SECTORS;j++){
+// 				cout<<wr[1][NUM_SPEEDBINS*i+j]<<"\t";
+// 		}
+// 		cout<<endl;	
+// 	}
+// }
+
+int* readData(int argc, char* argv[]){
+
 	int wr[OMP_NUM_THREADS][NUM_SECTORS * NUM_SPEEDBINS]={0};
 	memset(wr,0,sizeof(int)*NUM_SECTORS * NUM_SPEEDBINS*OMP_NUM_THREADS);
 
 	int NUM_FILES=argc-2;
 	string STATION_ID = argv[1];
+	
 	//read list of files
 	char* files[NUM_FILES];
 	for(int j=0;j<NUM_FILES;j++)
  		files[j]=argv[j+2];
 
-// 	#pragma omp parallel
- 	displayArray(wr);  
+	// #pragma omp parallel
+ 	//displayArray(wr);  
 
  	ifstream *data[NUM_FILES];
 	#pragma omp parallel for
@@ -95,9 +97,9 @@ int main(int argc, char* argv[])
 		#pragma omp private(w[t])
 			for(int j=0;j<NUM_FILES;j++){
 
-		 		cout<<omp_get_thread_num();
+		 		//cout<<omp_get_thread_num();
 		 		//ifstream  datafile(files[j]);		
-				//cout<<omp_get_thread_num();
+				
 				#pragma omp critical (file)
 				{
 					if(!data[j]->is_open()){
@@ -142,30 +144,54 @@ int main(int argc, char* argv[])
  		data[i]->close();
  	}
 
-	printf("\nTime taken: %fs\n", (double)(clock() - start)/CLOCKS_PER_SEC);
+	
 
   	//displayArray(wr);  
-	int w[NUM_SECTORS * NUM_SPEEDBINS]={0};
+
+  	//result array
+	//int w[NUM_SECTORS * NUM_SPEEDBINS]={0};
+	
 	//#pragma omp parallel for collapse(2)
-  		for(int i=0;i<NUM_SPEEDBINS;i++)
+  		for(int i=0;i<NUM_SPEEDBINS;i++)//aggregates
 		{
 			for(int j=0;j<NUM_SECTORS;j++)
 				{
 					//cout<<wr[t][i][j]<<"\t";
 					//wr[0][i][j]=wr[0][i][j]+wr[1][i][j];
-	//				#pragma omp critical
+					// #pragma omp critical
 					w[NUM_SPEEDBINS*i+j]=
 					wr[0][NUM_SPEEDBINS*i+j]+wr[1][NUM_SPEEDBINS*i+j]
 					+wr[2][NUM_SPEEDBINS*i+j];+wr[3][NUM_SPEEDBINS*i+j];
 					/*+wr[4][NUM_SPEEDBINS*i+j]+wr[5][NUM_SPEEDBINS*i+j]
 					+wr[6][NUM_SPEEDBINS*i+j]+wr[7][NUM_SPEEDBINS*i+j];*/
 				}
-				//cout<<endl;
+			
 		}
-	/*}*/
+	
 		#pragma omp barrier
-cout<<"-------------------------------------------------------------"<<endl;
-cout<<"-------------------------------------------------------------"<<endl;
+	
+		// for(int i=0;i<NUM_SPEEDBINS;i++){
+		// for(int j=0;j<NUM_SECTORS;j++){
+		// 		cout<<w[NUM_SPEEDBINS*i+j]<<"\t";
+		// }
+		// cout<<endl;	
+		//}
+		
+		return w;
+
+}
+
+int main(int argc, char* argv[])
+{
+	  	
+ 	clock_t start=clock();
+ 	
+ 	readData(argc,argv);
+ 	
+ 	printf("\nTime taken: %fs\n", (double)(clock() - start)/CLOCKS_PER_SEC);
+
+ 	//display
+ 	cout<<"-------------------------------------"<<endl;
 	for(int i=0;i<NUM_SPEEDBINS;i++){
 		for(int j=0;j<NUM_SECTORS;j++){
 				cout<<w[NUM_SPEEDBINS*i+j]<<"\t";
@@ -173,4 +199,6 @@ cout<<"-------------------------------------------------------------"<<endl;
 		cout<<endl;	
 	}
 	
+	return 0;
+
 }
