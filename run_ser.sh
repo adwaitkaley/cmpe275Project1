@@ -5,7 +5,7 @@
 #export OMP_NUM_THREADS=4
 #g++-4.9 -g wind.cpp -o windrose -fopenmp -std=gnu++11
 #for serial
-
+stationId="any"
 export OMP_NUM_THREADS=1
 g++-4.9 -g serial.cpp -o windrose -fopenmp -std=gnu++11
 if [ $? -ne 0 ]
@@ -22,5 +22,5 @@ do
 	file_list="$file_list $entry"
 done
 #echo $file_list
-time ./windrose $file_list
+time ./windrose $stationId $file_list
 #valgrind --tool=memcheck ./windrose $file_list

@@ -4,6 +4,8 @@
 
 #for parallel run wind.cpp
 export OMP_NUM_THREADS=4
+stationId="any"
+
 g++-4.9 -g parallel.cpp -o windrose -fopenmp -std=gnu++11
 
 #for serial
@@ -23,5 +25,5 @@ do
 	file_list="$file_list $entry"
 done
 
-time ./windrose $file_list
+time ./windrose $stationId $file_list
 #valgrind --tool=memcheck ./windrose $file_list

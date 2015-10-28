@@ -68,23 +68,24 @@ int main(int argc, char* argv[])
 	int wr[OMP_NUM_THREADS][NUM_SECTORS * NUM_SPEEDBINS]={0};
 	memset(wr,0,sizeof(int)*NUM_SECTORS * NUM_SPEEDBINS*OMP_NUM_THREADS);
 
-
-
+	int NUM_FILES=argc-2;
+	string STATION_ID = argv[1];
 	//read list of files
-	char* files[argc-1];
-	for(int j=0;j<argc-1;j++)
- 		files[j]=argv[j+1];
+	char* files[NUM_FILES];
+	for(int j=0;j<NUM_FILES;j++)
+ 		files[j]=argv[j+2];
 
 // 	#pragma omp parallel
  	displayArray(wr);  
 
- 	ifstream *data[argc-1];
+ 	ifstream *data[NUM_FILES];
 	#pragma omp parallel for
- 	for(int i=0;i<argc-1;i++){
+ 	for(int i=0;i<NUM_FILES;i++){
  		data[i]= new ifstream(files[i]);
  	}
     #pragma omp barrier
  	
+ 	string stnId="";
  	double spd=0.0, dir=0.0;
 	char c='\0';
  	
@@ -92,24 +93,44 @@ int main(int argc, char* argv[])
 	#pragma omp parallel for private(spd,dir,c) collapse(2)
 	for (int t = 0; t < OMP_NUM_THREADS; t++){
 		#pragma omp private(w[t])
-			for(int j=0;j<argc-1;j++){
+			for(int j=0;j<NUM_FILES;j++){
 
 		 		cout<<omp_get_thread_num();
 		 		//ifstream  datafile(files[j]);		
 				//cout<<omp_get_thread_num();
 				#pragma omp critical (file)
 				{
-				if(!data[j]->is_open()){
-					cout<<"Error opening : "<<files[j];
-				}else
-				while((*data[j] >> spd >> c >> dir) && (c == ','))
-				{
-					int s=calcSpeedBin(spd);
-					int d=calcDirectBin(dir);
-				    
-				    	wr[t][NUM_SECTORS*s+d]=wr[t][NUM_SECTORS*s+d]+1;  
+					if(!data[j]->is_open()){
+						cout<<"Error opening : "<<files[j];
+					}else
+					{
+						string line,record;
+						while(getline(*data[j],line,data[j]->widen('\n')))
+					  	{
+							string row[5];
+							stringstream ss;
+							ss.str(line);
+							int columncount=0;
+							
+							// reading data from each row		
+							while(getline(ss,record,','))
+								row[columncount++]=record;
+
+							istringstream (row[0])>>stnId;
+							if(STATION_ID=="any" || STATION_ID ==stnId){
+								istringstream (row[1])>>spd;
+								istringstream (row[2])>>dir;
+								// istringstream (row[3])>>lat; 
+								// istringstream (row[4])>>lon;
+								//	cout<<stnId<<spd<<dir<<lat<<lon<<endl;
+								int s=calcSpeedBin(spd);
+								int d=calcDirectBin(dir);
+						    	wr[t][NUM_SECTORS*s+d]=wr[t][NUM_SECTORS*s+d]+1;  
+					    	}
+					
+						}
+					}
 				}
-			}
 			}
 				
 	}
@@ -117,7 +138,7 @@ int main(int argc, char* argv[])
 	
 	//close all files	
 	#pragma omp parallel for 	
- 	for(int i=0;i<argc-1;i++){
+ 	for(int i=0;i<NUM_FILES;i++){
  		data[i]->close();
  	}
 
